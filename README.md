@@ -189,7 +189,7 @@ git clone https://gitlab.com/crafty-controller/crafty-4.git
 cd crafty-4
 
 # Create virtual environment
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate  # Linux
 # .venv\Scripts\activate   # Windows
 
@@ -208,7 +208,7 @@ Navigate to `https://localhost:8443` and complete the initial setup wizard.
 ```sh
 git clone https://gitlab.com/crafty-controller/crafty-4.git
 cd crafty-4
-python -m venv .venv
+python3 -m venv .venv 
 source .venv/bin/activate
 pip install -r requirements.txt
 pip install black  # Code formatter
