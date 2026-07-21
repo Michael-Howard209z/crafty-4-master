@@ -948,27 +948,28 @@ class ApiServersIndexHandler(BaseApiHandler):
                 400, {"status": "error", "error": "INVALID_JSON", "error_data": str(e)}
             )
 
-        user_max_ram = self.controller.users.get_user_column(
-            user["user_id"], "max_ram_gb"
-        )
-        mem_max = None
-        try:
-            create_type = data["create_type"]
-            root_cd = data[create_type + "_create_data"]
-            sub_type = root_cd["create_type"]
-            sub_data = root_cd[sub_type + "_create_data"]
-            mem_max = sub_data.get("mem_max")
-        except (KeyError, TypeError):
-            pass
-        if mem_max is not None and mem_max > user_max_ram:
-            return self.finish_json(
-                400,
-                {
-                    "status": "error",
-                    "error": "RAM_LIMIT_EXCEEDED",
-                    "error_data": f"Maximum RAM allowed: {user_max_ram}GB. Requested: {mem_max}GB.",
-                },
+        if not _superuser:
+            user_max_ram = self.controller.users.get_user_column(
+                user["user_id"], "max_ram_gb"
             )
+            mem_max = None
+            try:
+                create_type = data["create_type"]
+                root_cd = data[create_type + "_create_data"]
+                sub_type = root_cd["create_type"]
+                sub_data = root_cd[sub_type + "_create_data"]
+                mem_max = sub_data.get("mem_max")
+            except (KeyError, TypeError):
+                pass
+            if mem_max is not None and mem_max > user_max_ram:
+                return self.finish_json(
+                    400,
+                    {
+                        "status": "error",
+                        "error": "RAM_LIMIT_EXCEEDED",
+                        "error_data": f"Maximum RAM allowed: {user_max_ram}GB. Requested: {mem_max}GB.",
+                    },
+                )
 
         try:
             validate(data, new_server_schema)

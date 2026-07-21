@@ -302,7 +302,9 @@ class ImportHelpers:
             return False
 
         # Make sure the server is registered before updating its stats
-        while True:
+        max_wait = 30
+        wait_count = 0
+        while wait_count < max_wait:
             try:
                 ServersController.set_import(server_id)
                 WebSocketManager().broadcast_to_server_users(
@@ -310,7 +312,18 @@ class ImportHelpers:
                 )
                 break
             except Exception as ex:
-                logger.debug(f"Server not registered yet. Delaying download - {ex}")
+                wait_count += 1
+                logger.debug(
+                    f"Server not registered yet ({wait_count}/{max_wait}). "
+                    f"Delaying download - {ex}"
+                )
+                time.sleep(1)
+        else:
+            logger.error(
+                f"Gave up waiting for server {server_id} to register. "
+                f"Download aborted."
+            )
+            return False
 
         # Initiate Download
         jar_dir = os.path.dirname(path)

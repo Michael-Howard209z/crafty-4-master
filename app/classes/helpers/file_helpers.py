@@ -286,7 +286,7 @@ class FileHelpers:
         """
         # Validation of URL is done in ssl_get_file when the req is created. Safe to
         # disable the inspection here.
-        with urllib.request.urlopen(req, context=ssl_context) as response:  # noqa: S310
+        with urllib.request.urlopen(req, context=ssl_context, timeout=120) as response:  # noqa: S310
             total_size = response.getheader("Content-Length")
             if total_size:
                 total_size = int(total_size)
