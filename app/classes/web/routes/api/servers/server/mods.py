@@ -254,18 +254,23 @@ class ApiServersServerModsInstallHandler(BaseApiHandler):
                 {"status": "error", "error": "MISSING_PROJECT_ID"},
             )
 
-        server_path = self.controller.servers.get_server_column(server_id, "path")
-
-        if mod_type == "plugin":
-            target_dir = Path(server_path, "plugins")
-        else:
-            target_dir = Path(server_path, "mods")
-
-        os.makedirs(target_dir, exist_ok=True)
-
-        ssl_context = ssl.create_default_context(cafile=certifi.where())
-
         try:
+            server_path = self.controller.servers.get_server_data_by_id(server_id)["path"]
+
+            if mod_type == "plugin":
+                target_dir = Path(server_path, "plugins")
+            else:
+                target_dir = Path(server_path, "mods")
+
+            os.makedirs(target_dir, exist_ok=True)
+
+            ssl_context = ssl.create_default_context(cafile=certifi.where())
+
+            SERVER_LOADERS = {
+                "plugin": ["paper", "spigot", "purpur", "bukkit", "folia", "pufferfish"],
+                "mod": ["fabric", "forge", "quilt", "neoforge"],
+            }
+
             if version_id:
                 versions_url = (
                     f"{MODRINTH_API}/project/{quote(project_id, safe='')}"
@@ -282,7 +287,13 @@ class ApiServersServerModsInstallHandler(BaseApiHandler):
                         404,
                         {"status": "error", "error": "NO_VERSIONS"},
                     )
-                version_data = versions[0]
+                compatible = SERVER_LOADERS.get(mod_type, [])
+                matched = [v for v in versions if
+                    any(l in [x.lower() for x in v.get("loaders", [])] for l in compatible)]
+                if matched:
+                    version_data = matched[0]
+                else:
+                    version_data = versions[0]
 
             files = version_data.get("files", [])
             if not files:
@@ -334,5 +345,25 @@ class ApiServersServerModsInstallHandler(BaseApiHandler):
                     "status": "error",
                     "error": "DOWNLOAD_FAILED",
                     "error_data": f"Download failed: {e}",
+                },
+            )
+        except json.decoder.JSONDecodeError as e:
+            logger.error(f"Modrinth API returned invalid JSON: {e}")
+            return self.finish_json(
+                502,
+                {
+                    "status": "error",
+                    "error": "UPSTREAM_ERROR",
+                    "error_data": "Modrinth API returned invalid response",
+                },
+            )
+        except Exception as e:
+            logger.error(f"Modrinth install error: {e}")
+            return self.finish_json(
+                500,
+                {
+                    "status": "error",
+                    "error": "INSTALL_ERROR",
+                    "error_data": str(e),
                 },
             )

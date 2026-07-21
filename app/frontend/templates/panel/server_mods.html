@@ -377,10 +377,12 @@ function installMod(slug, modType, title, versionId) {
                     <br><small>File: ${escapeHtml(data.data.filename)}</small>
                 </div>`;
         } else {
+            var errMsg = data.error || 'Unknown error';
+            if (data.error_data) errMsg += ': ' + data.error_data;
             statusDiv.innerHTML =
                 `<div class="alert alert-danger">
                     <i class="ph-bold ph-x-circle"></i>
-                    Install failed: ${data.error || 'Unknown error'}
+                    Install failed: ${errMsg}
                 </div>`;
         }
     })
