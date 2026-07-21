@@ -1,0 +1,105 @@
+# yamllint disable rule:line-length
+---
+win-dev-build:
+  stage: build-and-deploy
+  tags:
+    - saas-windows-medium-amd64
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
+    - if: "$CI_COMMIT_BRANCH == 'dev'"
+  environment:
+    name: development
+  before_script:
+    - |
+      echo "Prepare python"
+      choco install python --version=3.12.9 -y -f
+  script:
+    - |
+      $ErrorActionPreference = "Stop"
+      if (Test-Path .venv) {
+        Remove-Item -LiteralPath .venv -Recurse -Force
+      }
+      C:\\Python312\\python.exe -m venv .venv
+      .venv\Scripts\activate.ps1
+      python -m pip install --upgrade pip setuptools wheel
+      python -m pip install -r requirements.txt
+      python -m pip install --upgrade pyinstaller "packaging>=24.2"
+    - python -m PyInstaller -F main.py
+      --distpath .
+      --icon app\frontend\static\assets\images\Crafty_4-0_Logo_square.ico
+      --name "crafty"
+      --paths .
+      --collect-submodules app
+      --clean
+    - |
+      echo "Retrieving 'latest' updater from crafty-controller/crafty-4-windows-updater"
+      $src = 'https://gitlab.com/crafty-controller/crafty-4-windows-updater/-/jobs/artifacts/dev/raw/crafty_updater.exe?job=win-dev-build'
+      $dest = 'crafty_updater.exe'
+      Invoke-WebRequest -Uri $src -OutFile $dest
+
+  # Download latest:
+  # | https://gitlab.com/crafty-controller/crafty-4/-/jobs/artifacts/dev/download?job=win-dev-build
+  artifacts:
+    name: "crafty-${CI_RUNNER_TAGS}-${CI_COMMIT_BRANCH}_${CI_COMMIT_SHORT_SHA}"
+    paths:
+      - app\
+      - .\crafty.exe
+      - .\crafty_updater.exe
+    exclude:
+      - app\classes\**\*
+
+win-prod-build:
+  stage: build-and-deploy
+  tags:
+    - saas-windows-medium-amd64
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
+    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
+    - if: $CI_COMMIT_TAG
+  environment:
+    name: production
+  before_script:
+    - |
+      echo "Prepare python"
+      choco install python --version=3.12.9 -y -f
+  script:
+    - |
+      $ErrorActionPreference = "Stop"
+      if (Test-Path .venv) {
+        Remove-Item -LiteralPath .venv -Recurse -Force
+      }
+      C:\\Python312\\python.exe -m venv .venv
+      .venv\Scripts\activate.ps1
+      python -m pip install --upgrade pip setuptools wheel
+      python -m pip install -r requirements.txt
+      python -m pip install --upgrade pyinstaller "packaging>=24.2"
+    - python -m PyInstaller -F main.py
+      --distpath .
+      --icon app\frontend\static\assets\images\Crafty_4-0_Logo_square.ico
+      --name "crafty"
+      --paths .
+      --collect-submodules app
+      --clean
+    - |
+      echo "Retrieving 'latest' updater from crafty-controller/crafty-4-windows-updater"
+      $src = 'https://gitlab.com/crafty-controller/crafty-4-windows-updater/-/jobs/artifacts/master/raw/crafty_updater.exe?job=win-prod-build'
+      $dest = 'crafty_updater.exe'
+      Invoke-WebRequest -Uri $src -OutFile $dest
+  after_script:
+    - Add-Content -Path job.env -Value "JOB_ID=$CI_JOB_ID"
+
+  # Download latest:
+  # | https://gitlab.com/crafty-controller/crafty-4/-/jobs/artifacts/master/download?job=win-prod-build
+  artifacts:
+    name: "crafty-${CI_RUNNER_TAGS}-${CI_COMMIT_BRANCH}_${CI_COMMIT_SHORT_SHA}"
+    paths:
+      - app\
+      - .\crafty.exe
+      - .\crafty_updater.exe
+    expire_in: never
+    exclude:
+      - app\classes\**\*
+    reports:
+      dotenv: job.env

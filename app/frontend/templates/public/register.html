@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en" class="default">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>Crafty Controller - Register</title>
+  <link rel="stylesheet" href="/static/assets/vendors/mdi/css/materialdesignicons.min.css">
+  <link rel="stylesheet" href="/static/assets/vendors/flag-icon-css/css/flag-icon.min.css">
+  <link rel="stylesheet" href="/static/assets/vendors/ti-icons/css/themify-icons.css">
+  <link rel="stylesheet" href="/static/assets/vendors/typicons/typicons.css">
+  <link rel="stylesheet" href="/static/assets/css/login.css">
+  <link rel="stylesheet" href="/static/assets/vendors/css/vendor.bundle.base.css">
+  <link rel="manifest" href="/static/assets/crafty.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="apple-touch-icon" href="../static/assets/images/Crafty_4-0.png">
+  <link rel="stylesheet" href="/static/assets/css/internal/root.css">
+  <link rel="stylesheet" href="/static/assets/css/themes/default.css">
+  <link rel="stylesheet" href="/static/assets/css/base-style.css">
+  <link rel="stylesheet" href="/static/assets/css/crafty.css">
+  <link rel="stylesheet" href="/static/assets/css/partial/crafty-login_page.css">
+  <link rel="shortcut icon" type="image/svg+xml" href="/static/assets/images/logo_small.svg">
+  <link rel="alternate icon" href="/static/assets/images/favicon.png" />
+</head>
+<style>
+  .auth.auth-bg-1 {
+    background: url("../../static/assets/images/auth/{% raw data['background'] %}"),
+    url("/static/assets/images/auth/login_1.jpg");
+    background-size: cover;
+    background-position: center;
+  }
+</style>
+
+<body>
+  <div class="container-scroller">
+    <div class="container-fluid page-body-wrapper full-page-wrapper">
+      <div class="content-wrapper d-flex align-items-center auth auth-bg-1 theme-one">
+        <div class="row w-100">
+          <div class="col-lg-4 mx-auto">
+            <div class="card text-center">
+              <div class="card-body">
+                <div class="text-center">
+                  <img src="/static/assets/images/logo_long.svg" style="max-width: 200px;" alt="Crafty Controller" />
+                </div>
+                <hr>
+                <h4 class="card-title">Create Account</h4>
+                <p class="text-muted">Register a new account to manage your servers.</p>
+
+                <div id="register-error" class="alert alert-danger d-none"></div>
+                <div id="register-success" class="alert alert-success d-none"></div>
+
+                <form id="register-form" onsubmit="return false;">
+                  <div class="form-group">
+                    <label for="reg-username">Username</label>
+                    <input type="text" class="form-control" id="reg-username" placeholder="Choose a username (3-20 chars)" required autofocus>
+                  </div>
+                  <div class="form-group">
+                    <label for="reg-email">Email</label>
+                    <input type="email" class="form-control" id="reg-email" placeholder="Enter your email" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="reg-password">Password</label>
+                    <input type="password" class="form-control" id="reg-password" placeholder="Choose a password (min 6 chars)" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="reg-password-confirm">Confirm Password</label>
+                    <input type="password" class="form-control" id="reg-password-confirm" placeholder="Confirm your password" required>
+                  </div>
+                  <div class="text-info small mb-3">
+                    <i class="mdi mdi-information"></i> New accounts are limited to 4GB RAM per server.
+                  </div>
+                  <button type="submit" id="register-btn" class="btn btn-primary btn-block">
+                    Create Account
+                  </button>
+                  <div class="mt-3">
+                    <a href="/login" class="text-small">Already have an account? Log in</a>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/assets/vendors/js/jquery.min.js"></script>
+  <script>
+    $(document).ready(function() {
+      $('#register-form').on('submit', function(e) {
+        e.preventDefault();
+        var errorDiv = $('#register-error');
+        var successDiv = $('#register-success');
+        var btn = $('#register-btn');
+
+        errorDiv.addClass('d-none');
+        successDiv.addClass('d-none');
+
+        var username = $('#reg-username').val().trim();
+        var email = $('#reg-email').val().trim();
+        var password = $('#reg-password').val();
+        var confirm = $('#reg-password-confirm').val();
+
+        if (!username || !email || !password || !confirm) {
+          errorDiv.removeClass('d-none').text('All fields are required.');
+          return;
+        }
+
+        if (password !== confirm) {
+          errorDiv.removeClass('d-none').text('Passwords do not match.');
+          return;
+        }
+
+        if (password.length < 6) {
+          errorDiv.removeClass('d-none').text('Password must be at least 6 characters.');
+          return;
+        }
+
+        if (username.length < 3 || username.length > 20) {
+          errorDiv.removeClass('d-none').text('Username must be 3-20 characters.');
+          return;
+        }
+
+        if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+          errorDiv.removeClass('d-none').text('Username can only contain letters, numbers, and underscores.');
+          return;
+        }
+
+        btn.prop('disabled', true).text('Creating account...');
+
+        $.ajax({
+          url: '/api/v2/auth/register/',
+          method: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify({
+            username: username,
+            email: email,
+            password: password
+          }),
+          success: function(resp) {
+            successDiv.removeClass('d-none').html(
+              '<strong>Account created!</strong> You can now <a href="/login">log in</a> with your new account.'
+            );
+            $('#register-form').find('input').val('');
+          },
+          error: function(xhr) {
+            var msg = 'Registration failed.';
+            try {
+              var resp = JSON.parse(xhr.responseText);
+              if (resp.error === 'USER_EXISTS') msg = 'Username already exists.';
+              else if (resp.error === 'REGISTRATION_DISABLED') msg = 'Registration is disabled.';
+              else if (resp.error === 'INVALID_USERNAME') msg = 'Invalid username.';
+              else if (resp.error_data) msg = resp.error_data;
+            } catch(e) {}
+            errorDiv.removeClass('d-none').text(msg);
+          },
+          complete: function() {
+            btn.prop('disabled', false).text('Create Account');
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>

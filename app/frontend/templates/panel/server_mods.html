@@ -1,0 +1,436 @@
+{% extends ../base.html %}
+
+{% block meta %}
+{% end %}
+
+{% block title %}Crafty Controller - {{ translate('serverDetails', 'serverDetails', data['lang']) }}{% end %}
+
+{% block content %}
+<div class="content-wrapper">
+
+    <div class="row page-title-header">
+        <div class="col-12">
+            <div class="page-header">
+                <h4 class="page-title">
+                    {{ translate('serverDetails', 'serverDetails', data['lang']) }} - {{
+                    data['server_stats']['server_id']['server_name'] }}
+                    <br />
+                    <small>UUID: {{ data['server_stats']['server_id']['server_id'] }}</small>
+                </h4>
+            </div>
+        </div>
+    </div>
+
+    {% include "parts/details_stats.html" %}
+
+    <div class="row">
+        <div class="col-sm-12 grid-margin">
+            <div class="card">
+                <div class="card-body pt-0">
+                    <span class="d-none d-sm-block">
+                        {% include "parts/server_controls_list.html" %}
+                    </span>
+                    <span class="d-block d-sm-none">
+                        {% include "parts/m_server_controls_list.html" %}
+                    </span>
+
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h3><i class="ph-bold ph-puzzle-piece"></i> Mod & Plugin Manager</h3>
+                            <p class="text-muted">Browse and install mods and plugins from Modrinth directly to your server.</p>
+                            <hr>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-5">
+                            <div class="input-group">
+                                <input type="text" id="mod-search-input" class="form-control"
+                                    placeholder="Search mods or plugins..." />
+                                <div class="input-group-append">
+                                    <button id="mod-search-btn" class="btn btn-primary" type="button">
+                                        <i class="ph-bold ph-magnifying-glass"></i> Search
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-7">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <select id="mod-type-select" class="form-control">
+                                        <option value="mod">Mods</option>
+                                        <option value="plugin">Plugins</option>
+                                        <option value="datapack">Data Packs</option>
+                                        <option value="shader">Shaders</option>
+                                        <option value="resourcepack">Resource Packs</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <select id="mod-version-select" class="form-control">
+                                        <option value="">All versions</option>
+                                        {% if data['available_versions'] %}
+                                        {% for ver in data['available_versions'] %}
+                                        <option value="{{ ver }}">{{ ver }}</option>
+                                        {% end %}
+                                        {% end %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="mod-search-status" class="mb-3"></div>
+
+                    <div id="mod-loader" class="d-none text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Searching...</p>
+                    </div>
+
+                    <div id="mod-results" class="row">
+                        <div class="col-12 text-center text-muted py-5">
+                            <i class="ph-bold ph-package" style="font-size: 4rem; opacity: 0.3;"></i>
+                            <p class="mt-3 h5">Search for mods or plugins above</p>
+                            <p class="text-muted">Enter a name and select a type to browse from Modrinth</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modDetailModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="detail-modal-title">Loading...</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="detail-modal-body">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                </div>
+            </div>
+            <div class="modal-footer" id="detail-modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const serverId = '{{ data['server_id'] }}';
+
+function searchMods() {
+    const query = document.getElementById('mod-search-input').value.trim();
+    const modType = document.getElementById('mod-type-select').value;
+    const version = document.getElementById('mod-version-select').value;
+
+    if (!query) {
+        document.getElementById('mod-search-status').innerHTML =
+            '<div class="alert alert-warning">Please enter a search term.</div>';
+        return;
+    }
+
+    const statusDiv = document.getElementById('mod-search-status');
+    const resultsDiv = document.getElementById('mod-results');
+    const loader = document.getElementById('mod-loader');
+
+    statusDiv.innerHTML = '';
+    resultsDiv.innerHTML = '';
+    loader.classList.remove('d-none');
+
+    let url = `/api/v2/servers/${serverId}/mods/search?query=${encodeURIComponent(query)}&type=${modType}`;
+    if (version) {
+        url += `&version=${encodeURIComponent(version)}`;
+    }
+
+    fetch(url)
+        .then(r => r.json())
+        .then(data => {
+            loader.classList.add('d-none');
+            if (data.status === 'ok' && data.data.length > 0) {
+                renderResults(data.data, modType);
+            } else {
+                resultsDiv.innerHTML = `
+                    <div class="col-12 text-center text-muted py-5">
+                        <i class="ph-bold ph-package" style="font-size: 3rem; opacity: 0.3;"></i>
+                        <p class="mt-3 h5">No results found for "<strong>${escapeHtml(query)}</strong>"</p>
+                        <p>Try a different search term or type</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(err => {
+            loader.classList.add('d-none');
+            statusDiv.innerHTML = `<div class="alert alert-danger">Search failed: ${err}</div>`;
+        });
+}
+
+function renderResults(items, modType) {
+    const resultsDiv = document.getElementById('mod-results');
+    resultsDiv.innerHTML = '';
+
+    items.forEach(item => {
+        const desc = item.description ? item.description.substring(0, 120) : 'No description';
+        const icon = item.icon_url || '/static/assets/images/logo_small.svg';
+        const cats = item.categories || [];
+        const catBadges = cats.slice(0, 3).map(c =>
+            `<span class="badge badge-secondary mr-1">${escapeHtml(c)}</span>`
+        ).join('');
+
+        const col = document.createElement('div');
+        col.className = 'col-xl-4 col-lg-6 mb-4';
+
+        col.innerHTML = `
+            <div class="card h-100 mod-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-start mb-2">
+                        <img src="${icon}" alt="" class="mr-3 rounded"
+                            style="width: 56px; height: 56px; object-fit: contain;"
+                            onerror="this.src='/static/assets/images/logo_small.svg'">
+                        <div class="flex-grow-1 min-width-0">
+                            <h5 class="card-title mb-0 text-truncate">${escapeHtml(item.title || item.slug)}</h5>
+                            <small class="text-muted">by ${escapeHtml(item.author || 'Unknown')}</small>
+                            <div class="mt-1">${catBadges}</div>
+                        </div>
+                    </div>
+                    <p class="card-text small text-muted">${escapeHtml(desc)}</p>
+                    <div class="d-flex justify-content-between align-items-center mb-2 small text-muted">
+                        <span><i class="ph-bold ph-download"></i> ${abbrNum(item.downloads || 0)}</span>
+                        <span><i class="ph-bold ph-heart"></i> ${abbrNum(item.follows || 0)}</span>
+                        <span>v${escapeHtml(item.latest_version || '?')}</span>
+                    </div>
+                    <div class="d-flex">
+                        <button class="btn btn-outline-info btn-sm flex-grow-1 mr-1 detail-btn"
+                            data-slug="${item.slug}" data-type="${modType}"
+                            data-title="${escapeAttr(item.title || item.slug)}">
+                            <i class="ph-bold ph-info"></i> Details
+                        </button>
+                        <button class="btn btn-success btn-sm flex-grow-1 ml-1 install-btn"
+                            data-slug="${item.slug}" data-type="${modType}"
+                            data-title="${escapeAttr(item.title || item.slug)}">
+                            <i class="ph-bold ph-download"></i> Install
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        resultsDiv.appendChild(col);
+    });
+
+    document.querySelectorAll('.install-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            quickInstall(this.dataset.slug, this.dataset.type, this.dataset.title);
+        });
+    });
+
+    document.querySelectorAll('.detail-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            showDetail(this.dataset.slug, this.dataset.type, this.dataset.title);
+        });
+    });
+}
+
+function showDetail(slug, modType, title) {
+    const modal = $('#modDetailModal');
+    modal.modal('show');
+    document.getElementById('detail-modal-title').textContent = 'Loading...';
+    document.getElementById('detail-modal-body').innerHTML =
+        '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>';
+    document.getElementById('detail-modal-footer').innerHTML =
+        '<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>';
+
+    fetch(`/api/v2/servers/${serverId}/mods/project/${encodeURIComponent(slug)}/`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.status !== 'ok') {
+                document.getElementById('detail-modal-body').innerHTML =
+                    '<div class="alert alert-danger">Failed to load project details.</div>';
+                return;
+            }
+            const p = data.data;
+            document.getElementById('detail-modal-title').textContent = p.title || slug;
+
+            const icon = p.icon_url || '/static/assets/images/logo_small.svg';
+            const cats = (p.categories || []).map(c =>
+                `<span class="badge badge-info mr-1 mb-1">${escapeHtml(c)}</span>`
+            ).join('');
+            const gameVersions = (p.game_versions || []).join(', ');
+            const loaders = (p.loaders || []).map(l =>
+                `<span class="badge badge-warning mr-1">${escapeHtml(l)}</span>`
+            ).join('');
+            const side = (p.server_side || 'unknown') + ' / ' + (p.client_side || 'unknown');
+
+            const vers = p.version_list || [];
+            let versionOptions = '<option value="">Latest version</option>';
+            vers.forEach(v => {
+                const label = v.version_number + ' [' + (v.game_versions || []).join(', ') + ']';
+                versionOptions += `<option value="${escapeAttr(v.id)}">${escapeHtml(label)}</option>`;
+            });
+
+            const body = p.body ? p.body.substring(0, 500) : p.description || 'No description';
+
+            document.getElementById('detail-modal-body').innerHTML = `
+                <div class="row">
+                    <div class="col-md-4 text-center mb-3">
+                        <img src="${icon}" alt="" class="rounded"
+                            style="max-width: 120px; max-height: 120px; object-fit: contain;"
+                            onerror="this.src='/static/assets/images/logo_small.svg'">
+                        <h5 class="mt-2">${escapeHtml(p.title || slug)}</h5>
+                        <small class="text-muted">by ${escapeHtml(p.author || 'Unknown')}</small>
+                        <div class="mt-2 small">
+                            <div><i class="ph-bold ph-download"></i> ${abbrNum(p.downloads || 0)} downloads</div>
+                            <div><i class="ph-bold ph-heart"></i> ${abbrNum(p.follows || 0)} follows</div>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <h6>Description</h6>
+                        <p class="small">${escapeHtml(body)}</p>
+
+                        <h6>Categories</h6>
+                        <div class="mb-2">${cats || 'None'}</div>
+
+                        <h6>Loaders</h6>
+                        <div class="mb-2">${loaders || 'Any'}</div>
+
+                        <h6>Supported Versions</h6>
+                        <p class="small">${escapeHtml(gameVersions) || 'Unknown'}</p>
+
+                        <h6>Side</h6>
+                        <p class="small">Server: ${escapeHtml(p.server_side || '?')} | Client: ${escapeHtml(p.client_side || '?')}</p>
+
+                        <h6>Links</h6>
+                        <div class="small">
+                            ${p.issues_url ? `<a href="${escapeAttr(p.issues_url)}" target="_blank" class="mr-2">Issues</a>` : ''}
+                            ${p.source_url ? `<a href="${escapeAttr(p.source_url)}" target="_blank" class="mr-2">Source</a>` : ''}
+                            ${p.wiki_url ? `<a href="${escapeAttr(p.wiki_url)}" target="_blank" class="mr-2">Wiki</a>` : ''}
+                            ${p.discord_url ? `<a href="${escapeAttr(p.discord_url)}" target="_blank">Discord</a>` : ''}
+                        </div>
+                    </div>
+                </div>
+                <hr>
+                <div class="form-group">
+                    <label for="detail-version-select"><strong>Select Version</strong></label>
+                    <select id="detail-version-select" class="form-control">${versionOptions}</select>
+                </div>
+            `;
+
+            document.getElementById('detail-modal-footer').innerHTML = `
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" id="detail-install-btn"
+                    data-slug="${escapeAttr(slug)}"
+                    data-type="${escapeAttr(modType)}"
+                    data-title="${escapeAttr(p.title || slug)}">
+                    <i class="ph-bold ph-download"></i> Install
+                </button>
+            `;
+
+            document.getElementById('detail-install-btn').addEventListener('click', function() {
+                const verSelect = document.getElementById('detail-version-select');
+                const versionId = verSelect.value;
+                installMod(this.dataset.slug, this.dataset.type, this.dataset.title, versionId);
+            });
+        })
+        .catch(err => {
+            document.getElementById('detail-modal-body').innerHTML =
+                `<div class="alert alert-danger">Error: ${err}</div>`;
+        });
+}
+
+function quickInstall(slug, modType, title) {
+    if (!confirm(`Install "${title}" to this server's ${modType}s folder?`)) return;
+    installMod(slug, modType, title, '');
+}
+
+function installMod(slug, modType, title, versionId) {
+    const statusDiv = document.getElementById('mod-search-status');
+    statusDiv.innerHTML = `<div class="alert alert-info">
+        <div class="spinner-border spinner-border-sm mr-2" role="status"></div>
+        Installing ${title}...</div>`;
+
+    $('#modDetailModal').modal('hide');
+
+    fetch(`/api/v2/servers/${serverId}/mods/install/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            slug: slug,
+            type: modType,
+            version_id: versionId
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'ok') {
+            const ver = data.data.version_number || '';
+            statusDiv.innerHTML =
+                `<div class="alert alert-success">
+                    <i class="ph-bold ph-check-circle"></i>
+                    <strong>${title}</strong> installed successfully!
+                    ${ver ? '<br><small>Version: ' + escapeHtml(ver) + '</small>' : ''}
+                    <br><small>File: ${escapeHtml(data.data.filename)}</small>
+                </div>`;
+        } else {
+            statusDiv.innerHTML =
+                `<div class="alert alert-danger">
+                    <i class="ph-bold ph-x-circle"></i>
+                    Install failed: ${data.error || 'Unknown error'}
+                </div>`;
+        }
+    })
+    .catch(err => {
+        statusDiv.innerHTML = `<div class="alert alert-danger">Install error: ${err}</div>`;
+    });
+}
+
+function abbrNum(num) {
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    return num;
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
+}
+
+function escapeAttr(text) {
+    if (!text) return '';
+    return text.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('mod-search-btn').addEventListener('click', searchMods);
+    document.getElementById('mod-search-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') searchMods();
+    });
+});
+</script>
+
+<style>
+.mod-card {
+    transition: box-shadow 0.2s, transform 0.15s;
+}
+.mod-card:hover {
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+    transform: translateY(-2px);
+}
+.modal-lg {
+    max-width: 800px;
+}
+#mod-results .card-title {
+    font-size: 0.95rem;
+}
+.badge {
+    font-weight: 500;
+}
+</style>
+{% end %}
