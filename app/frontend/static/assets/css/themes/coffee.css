@@ -1,0 +1,48 @@
+:root.coffee {
+    /*CHANGE THESE FOR THEMES*/
+    --tooltip-bg: #ffffff;
+    --base-bg: #f5f0eb;
+    --select-bg: #ede4d8;
+    --ram-bg: #d4c4b0;
+    --base-text: #3a2a1a;
+    --outline: #c4b09a;
+    --card-banner-bg: #f0e8de;
+    --deep-bg: #ede4d8;
+    --dropdown-bg: #f0e8de;
+    /*END THEME VARIATION*/
+    --black: #000000;
+    --blue: #5c8a8a;
+    --indigo: #7a6a5a;
+    --purple: #9a7a6a;
+    --pink: #b08070;
+    --red: #c05040;
+    --orange: #c08040;
+    --yellow: #d4a040;
+    --green: #6a8a5a;
+    --teal: #5a8a7a;
+    --cyan: #5a8a8a;
+    --white: #ffffff;
+    --white-smoke: #f5f0eb;
+    --gray: #9a8a7a;
+    --gray-light: #b0a090;
+    --gray-lightest: #d4c8b8;
+    --primary: #8a6a4a;
+    --secondary: #d4c4b0;
+    --success: #6a8a5a;
+    --info: #9a7a6a;
+    --warning: #c08040;
+    --danger: #c05040;
+    --light: #f5f0eb;
+    --dark: #2a1a0a;
+    --breakpoint-xs: 0;
+    --breakpoint-sm: 576px;
+    --breakpoint-md: 768px;
+    --breakpoint-lg: 992px;
+    --breakpoint-xl: 1200px;
+    --font-family-sans-serif: -apple-system, BlinkMacSystemFont, "Segoe UI",
+        "Atkinson Hyperlegible Next", "Helvetica Neue", Arial, "Noto Sans",
+        sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+        "Noto Color Emoji";
+    --font-family-monospace: "Atkinson Hyperlegible Mono", SFMono-Regular, Menlo,
+        Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}

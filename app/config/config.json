@@ -14,7 +14,7 @@
     "experimental": false,
     "general_user_log_access": false,
     "history_max_age": 7,
-    "https_port": 8443,
+    "https_port": 3000,
     "keywords": [
         "help",
         "chunk"

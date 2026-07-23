@@ -42,3 +42,4 @@ app/migrations/status
 /.vs
 
 app/config/default-creds.txt
+app/config/config.json

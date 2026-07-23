@@ -1,0 +1,48 @@
+:root.sunset {
+    /*CHANGE THESE FOR THEMES*/
+    --tooltip-bg: #1e1412;
+    --base-bg: #2a1a18;
+    --select-bg: #34201d;
+    --ram-bg: #4a2d28;
+    --base-text: #e6c9b8;
+    --outline: #5a3a32;
+    --card-banner-bg: #2e1d1a;
+    --deep-bg: #1c1210;
+    --dropdown-bg: #241815;
+    /*END THEME VARIATION*/
+    --black: #000000;
+    --blue: #64b5f6;
+    --indigo: #9fa8da;
+    --purple: #ce93d8;
+    --pink: #f06292;
+    --red: #ef5350;
+    --orange: #ff7043;
+    --yellow: #ffd54f;
+    --green: #81c784;
+    --teal: #80cbc4;
+    --cyan: #4dd0e1;
+    --white: #ffffff;
+    --white-smoke: #f5ebe8;
+    --gray: #b08a7a;
+    --gray-light: #c9a898;
+    --gray-lightest: #e6d5cc;
+    --primary: #ff8a65;
+    --secondary: #5a3a32;
+    --success: #a5d6a7;
+    --info: #ce93d8;
+    --warning: #ffcc80;
+    --danger: #ef5350;
+    --light: #f5ebe8;
+    --dark: #140e0c;
+    --breakpoint-xs: 0;
+    --breakpoint-sm: 576px;
+    --breakpoint-md: 768px;
+    --breakpoint-lg: 992px;
+    --breakpoint-xl: 1200px;
+    --font-family-sans-serif: -apple-system, BlinkMacSystemFont, "Segoe UI",
+        "Atkinson Hyperlegible Next", "Helvetica Neue", Arial, "Noto Sans",
+        sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+        "Noto Color Emoji";
+    --font-family-monospace: "Atkinson Hyperlegible Mono", SFMono-Regular, Menlo,
+        Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
